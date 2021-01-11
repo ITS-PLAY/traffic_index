@@ -570,7 +570,7 @@ void Stops_Caculation::update_Vehicles_Info() {
 	vehs_ID.clear();
 	return;
 }
-
+/*
 void ReadJsonFromFile(string filename, map<string, vector<vector<Point>>>& detect_Config_Points) {
 	ifstream ifs;
 	ifs.open(filename, ios::binary);
@@ -605,6 +605,7 @@ void ReadJsonFromFile(string filename, map<string, vector<vector<Point>>>& detec
 	ifs.close();
 	return;
 }
+*/
 
 int main()
 {
@@ -628,7 +629,6 @@ int main()
 	double speed_Start = 5.0 / 3.6, speed_End = 20.0 / 3.6;     //排队形成的速度阈值，排队消散的速度阈值
 	int min_Vehs_Size = 2;                                      //车队的最小车辆数
 	
-
 	vector<vector<Vehicle_Extent>> vehs_test(2);
 	for (int i = 0; i < 150; i++) {
 		vehs_test[0].emplace_back(Vehicle_Extent(4, 1, i+1, rand() % 4 + 11, 5, "light", -1.7, 30 + rand() % 180, rand() % 10, 0, 4, 1.8));
@@ -639,30 +639,11 @@ int main()
 
 	}
 
-	/*
-	                                             { {Vehicle_Extent(1,1,1,2, 5, "light", -1.7,205.0, 1.3, 0, 4, 1.8),
-												  Vehicle_Extent(1,1,2,2, 5, "light", -1.7,203.5, 1.3, 0, 4, 1.8)},     //单帧数据
-		                                         {Vehicle_Extent(2,1,1,2, 5, "light", -1.7,184.0, 1.3, 0, 4, 1.8),
-												  Vehicle_Extent(2,1,2,2, 5, "light", -1.7,180.0, 1.3, 0, 4, 1.8)},    
-	                                             {Vehicle_Extent(5,1,1,2, 5, "light", -1.7,75.0 , 1.3, 0, 4, 1.8),
-												  Vehicle_Extent(5,1,2,2, 5, "light", -1.7,70.0 , 1.3, 0, 4, 1.8)},
-	                                             //Vehicle_Extent(6,0,3,2,"5", "light", 1.7, 19.0, 6.5, 0, 4, 1.8),
-		                                         //Vehicle_Extent(7,0,1,2,"5", "light", 1.7,4.0 , 20, 0, 4, 1.8),
-		                                         //Vehicle_Extent(8,0,1,2,"5", "light", 1.7, 43.0, 1.3, 0, 4, 1.8),
-												 {Vehicle_Extent(9,1,1,2,5, "light",-1.7,42.0 , 1.3, 0, 4, 1.8),
-												  Vehicle_Extent(9,1,2,2,5, "light", -1.7,41.0 , 1.3, 0, 4, 1.8)},
-												 {Vehicle_Extent(10,2,1,2,5, "light", -1.7,31.0 , 1.3, 0, 4, 1.8),
-												  Vehicle_Extent(10,2,2,2,5, "light", -1.7, 30.5, 10, 0, 4, 1.8)}
-										          //Vehicle_Extent(12,0,1,2,"5", "light", 1.7,2.0 , 10, 0, 4, 1.8)}
-	                                    };
-	*/
 	map<int, Vehicle_Extent> map_Vehs_Entry, map_Vehs_Stop;   //记录entry-stop对中，车辆上一时刻的信息
 	map<int, bool> map_Lanes_Queue;   //记录车道排队的状态
 
 	Volume_Caculation volume_test = Volume_Caculation(time_Interval,true, detect_Config_Points);                                                                //定义流量指标
-	Space_Speed_Caculation speed_test = Space_Speed_Caculation(time_Interval, window_Interval, 60.0 / 3.6, detect_Config_Points);                       //定义平均空间速度指标
-	//Time_Headway_Caculation time_headway_test = Time_Headway_Caculation(time_Interval, 4.0, detect_Config_Points);                                               //定义平均车头时距指标
-	//Headway_Density_Caculation headway_density_test = Headway_Density_Caculation(time_Interval,true,detect_Config_Points);                                       //定义平均车头间距和密度指标
+	Space_Speed_Caculation speed_test = Space_Speed_Caculation(time_Interval, window_Interval, 60.0 / 3.6, detect_Config_Points);                       //定义平均空间速度指标                                      //定义平均车头间距和密度指标
 	Capacity_Caculation capacity_test = Capacity_Caculation(time_Interval, 4.0, 60/3.6, detect_Config_Points);                                                    //定义通行能力指标
 
 	Max_Queue_Caculation max_queue_test = Max_Queue_Caculation(time_Interval, true, speed_Start, speed_End, min_Vehs_Size, map_Lanes_Queue, detect_Config_Points);  //定义排队长度指标
@@ -676,7 +657,6 @@ int main()
 			speed_test.current_Time = vehs_test[i][j].timestamp;
 			stops_test.current_Time = vehs_test[i][j].timestamp;
 			if (vehs_test[i][j].veh_In_Zone) {
-				//vehs_test[i] = Location_In_Lane("lane_canalization", vehs_test[i], detect_Config_Points).update_Veh();         //车道检测
 				vehs_test[i][j] = Location_Cross_Line("entry_line", map_Vehs_Entry, vehs_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Veh();  //驶入区域检测
 				vehs_test[i][j] = Location_Cross_Line("stop_line", map_Vehs_Stop, vehs_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Veh();   //驶出区域检测
 				volume_test.get_Vehicles_Info(vehs_test[i][j]);            //采集车辆，用于计算流量
@@ -703,10 +683,10 @@ int main()
 			capacity_test.Time_Headway_Caculation::caculation_Index();                   //计算平均车头时距
 			capacity_test.caculation_Index();                                            //计算车道通行能力
 
-			//printf("volume: %f \n",volume_test.section_Volume);
+			printf("volume: %f \n",volume_test.section_Volume);
 			volume_test.update_Vehicles_Info();
 
-			//printf("space_speed: %f \n",speed_test.ave_Space_Speed);
+			printf("space_speed: %f \n",speed_test.ave_Space_Speed);
 			speed_test.update_Vehicles_Info();
 
 			if (capacity_test.ave_Time_Headway.size() > 0) {
