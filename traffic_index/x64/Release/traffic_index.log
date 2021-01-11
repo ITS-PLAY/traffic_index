@@ -1,0 +1,20 @@
+﻿  json_reader.cpp
+  json_value.cpp
+f:\202011mec交通开发\code\traffic_index\json_value.cpp(128): warning C4267: “=”: 从“size_t”转换到“unsigned int”，可能丢失数据
+  json_writer.cpp
+f:\202011mec交通开发\code\traffic_index\json_writer.cpp(343): warning C4267: “参数”: 从“size_t”转换到“unsigned int”，可能丢失数据
+f:\202011mec交通开发\code\traffic_index\json_writer.cpp(896): warning C4267: “参数”: 从“size_t”转换到“unsigned int”，可能丢失数据
+  traffic_index.cpp
+f:\202011mec交通开发\code\traffic_index\traffic_index.cpp(275): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+f:\202011mec交通开发\code\traffic_index\traffic_index.cpp(301): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+f:\202011mec交通开发\code\traffic_index\traffic_index.cpp(315): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+f:\202011mec交通开发\code\traffic_index\traffic_index.cpp(422): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+f:\202011mec交通开发\code\traffic_index\traffic_index.cpp(429): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+f:\202011mec交通开发\code\traffic_index\traffic_index.cpp(434): warning C4267: “参数”: 从“size_t”转换到“int”，可能丢失数据
+f:\202011mec交通开发\code\traffic_index\traffic_index.cpp(465): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+f:\202011mec交通开发\code\traffic_index\traffic_index.cpp(473): warning C4267: “=”: 从“size_t”转换到“int”，可能丢失数据
+f:\202011mec交通开发\code\traffic_index\traffic_index.cpp(588): warning C4267: “初始化”: 从“size_t”转换到“int”，可能丢失数据
+  正在生成代码
+  All 2759 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  已完成代码的生成
+  traffic_index.vcxproj -> F:\202011MEC交通开发\code\traffic_index\x64\Release\traffic_index.exe
