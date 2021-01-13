@@ -63,14 +63,14 @@ public:
 	};
 
 public:
-	bool veh_In_Zone;            //是否位于区域内
-	bool drive_In_Zone;          //是否正在驶入区域
-	double time_Drive_In;           //驶入区域的时间
+	bool veh_In_Zone = false;            //是否位于区域内
+	bool drive_In_Zone = false;          //是否正在驶入区域
+	double time_Drive_In = 0.0;           //驶入区域的时间
 	Point pos_Drive_In;          //驶入区域时的位置
-	bool drive_Out_Zone;         //是否正在驶出区域
-	double time_Drive_Out;          //驶出区域的时间
+	bool drive_Out_Zone = false;         //是否正在驶出区域
+	double time_Drive_Out = 0.0;          //驶出区域的时间
 	Point pos_Drive_Out;         //驶出区域时的位置
-	bool veh_Is_Stop;            //是否处于（不完全）停车状态
+	bool veh_Is_Stop = false;            //是否处于（不完全）停车状态
 };
 
 class Location_Detection {      //***车辆位置检测
@@ -212,7 +212,7 @@ public:
 
 private:
 	map<int, Vehicle_Extent> vehs_Set;
-	deque<int> vehs_ID_Set;
+	//deque<int> vehs_ID_Set;
 	double ave_Travel_Time = 0.0;
 	double window_Interval=30;                                      //时间窗口的最大值，分钟
 	double speed_Max;                                         //路段的限速值      
@@ -257,7 +257,7 @@ public:
 		max_Headway_Queue = speed_Queue_Start * time_Reaction + pow(speed_Queue_Start, 2.0) / (2 * speed_Deceleration_Value["light"]* surface_Ratio) + 5 + dist_Safe;  //vt+pow(v,2)/(2a)+length+dist_safe
 		max_Headway_Slow = speed_Queue_End * time_Reaction + pow(speed_Queue_End, 2.0) / (2 * speed_Deceleration_Value["light"]* surface_Ratio) + 5 + dist_Safe;
 		for (int i = 0; i < lane_Code.size(); i++) {
-			queue_Continue.emplace(lane_Code[i], true);
+			queue_Continue.emplace(lane_Code[i], false);
 		}
 	};
 	void create_Queue();
@@ -271,9 +271,9 @@ private:
 	map<int, vector<double>> queues_Density;
 	double speed_Queue_Start = 5.0/3.6;            //排队形成的速度 m/s,默认值
 	double speed_Queue_End = 20.0/3.6;              //排队消散的速度 m/s,默认值
-	double max_Headway_Queue = 10.0;            //排队阶段的车队最大车头时距m,默认值
-	double max_Headway_Slow = 20.0;             //缓行阶段的车队最大车头时距m,默认值
-	int min_Queue_Size = 2;                    //车队的最小车辆数
+	double max_Headway_Queue = 10.0;            //排队阶段的车队最大车头间距m,默认值
+	double max_Headway_Slow = 20.0;             //缓行阶段的车队最大车头间距m,默认值
+	int min_Queue_Size = 3;                    //车队的最小车辆数
 	bool section_Flag=true;
 public:
 	map<int,double> lanes_Queue_Length;
@@ -305,4 +305,4 @@ public:
 	double ave_Stops=0.0;
 };
 
-void ReadJsonFromFile(string filename, map<string, vector<vector<Point>>>& detect_Config_Points);
+//void ReadJsonFromFile(string filename, map<string, vector<vector<Point>>>& detect_Config_Points);

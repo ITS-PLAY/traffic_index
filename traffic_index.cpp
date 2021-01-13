@@ -13,42 +13,43 @@ void Location_Detection::get_Boundary_Point() {                //读取配置文
 
 void Location_Cross_Line::detect_Location() {
 	map<int, Vehicle_Extent>::iterator it = map_Vehs.find(vehicle.id);
-	if (it == map_Vehs.end()) 
+	if (it == map_Vehs.end() && vehicle.veh_In_Zone) {
 		map_Vehs.emplace(vehicle.id, vehicle);
-	else {
-		if ((*it).second.drive_In_Zone || (*it).second.drive_Out_Zone) {
-			vehicle.drive_In_Zone = (*it).second.drive_In_Zone; vehicle.drive_Out_Zone = (*it).second.drive_Out_Zone;
-			vehicle.pos_Drive_In = (*it).second.pos_Drive_In; vehicle.pos_Drive_Out = (*it).second.pos_Drive_Out;
-			vehicle.time_Drive_In = (*it).second.time_Drive_In; vehicle.time_Drive_Out = (*it).second.time_Drive_Out;
-			vehicle.veh_Is_Stop = (*it).second.veh_Is_Stop;
-		}
-		double y2 = vehicle.radar_py, y1 = (*it).second.radar_py,
-			x2 = vehicle.radar_px, x1 = (*it).second.radar_px;
-		double a = points[0][1].y - points[0][0].y, b = points[0][0].x - points[0][1].x;      //计算直线的参数：斜率和截距
-		double c = points[0][0].x * points[0][1].y - points[0][0].y * points[0][1].x;
-		double condition1 = a * x1 + b * y1 - c, condition2 = a * x2 + b * y2 - c;
-		if (condition1 * condition2 < 0 || (condition1 == 0 && condition2 < 0)) {
-			if (line_type == "entry_line" && !(*it).second.drive_In_Zone) {
-				vehicle.drive_In_Zone = true;
-				vehicle.pos_Drive_In.x = vehicle.radar_px;
-				vehicle.pos_Drive_In.y = vehicle.radar_py;
-				vehicle.time_Drive_In = vehicle.timestamp;
-			}
-			else if (line_type == "stop_line" && !(*it).second.drive_Out_Zone) {
-				vehicle.drive_Out_Zone = true;
-				vehicle.pos_Drive_Out.x = vehicle.radar_px;
-				vehicle.pos_Drive_Out.y = vehicle.radar_py;
-				vehicle.time_Drive_Out = vehicle.timestamp;
-			}
-		}
-		map_Vehs[vehicle.id] = vehicle;	
+		return;
 	}
+	if ((*it).second.drive_In_Zone || (*it).second.drive_Out_Zone || (*it).second.veh_Is_Stop) {
+		vehicle.drive_In_Zone = (*it).second.drive_In_Zone; vehicle.drive_Out_Zone = (*it).second.drive_Out_Zone;
+		vehicle.pos_Drive_In = (*it).second.pos_Drive_In; vehicle.pos_Drive_Out = (*it).second.pos_Drive_Out;
+		vehicle.time_Drive_In = (*it).second.time_Drive_In; vehicle.time_Drive_Out = (*it).second.time_Drive_Out;
+		vehicle.veh_Is_Stop = (*it).second.veh_Is_Stop;
+	}
+	double y2 = vehicle.radar_py, y1 = (*it).second.radar_py,
+		   x2 = vehicle.radar_px, x1 = (*it).second.radar_px;
+	double a = points[0][1].y - points[0][0].y, b = points[0][0].x - points[0][1].x;      //计算直线的参数：斜率和截距
+	double c = points[0][0].x * points[0][1].y - points[0][0].y * points[0][1].x;
+	double condition1 = a * x1 + b * y1 - c, condition2 = a * x2 + b * y2 - c;
+	if (condition1 * condition2 < 0 || (condition1 == 0 && condition2 < 0)) {
+		if (line_type == "entry_line" && !(*it).second.drive_In_Zone) {
+			vehicle.drive_In_Zone = true;
+			vehicle.pos_Drive_In.x = vehicle.radar_px;
+			vehicle.pos_Drive_In.y = vehicle.radar_py;
+			vehicle.time_Drive_In = vehicle.timestamp;
+		}
+		if (line_type == "stop_line" && !(*it).second.drive_Out_Zone) {
+			vehicle.drive_Out_Zone = true;
+			vehicle.pos_Drive_Out.x = vehicle.radar_px;
+			vehicle.pos_Drive_Out.y = vehicle.radar_py;
+			vehicle.time_Drive_Out = vehicle.timestamp;
+		}
+	}
+	if (it != map_Vehs.end())
+		map_Vehs[vehicle.id] = vehicle;
 	return;
 }
 
 map<int, Vehicle_Extent> Location_Cross_Line::update_Map_Vehs() {
 	for (auto it = map_Vehs.begin(); it != map_Vehs.end(); ) {
-		if ((*it).second.drive_Out_Zone || ((*it).second.drive_In_Zone && (current_Time - (*it).second.time_Drive_In) > window_Interval))
+		if (!(*it).second.veh_In_Zone)
 			map_Vehs.erase(it++);
 		else
 			it++;
@@ -61,25 +62,16 @@ Vehicle_Extent Location_Cross_Line::update_Veh() {
 }
 
 void Location_In_Zone::detect_Location() {
-	vector<double> test;
-	double a;
-	for (unsigned int j = 0; j < points[0].size(); j++){        //计算叉积
-		if (j == points[0].size() - 1){
-			a = (points[0][0].x - points[0][j].x)*(vehicle.radar_py - points[0][j].y) - (points[0][0].y - points[0][j].y)*(vehicle.radar_px - points[0][j].x);
-		}
-		else{
-			a = (points[0][j + 1].x - points[0][j].x)*(vehicle.radar_py - points[0][j].y) - (points[0][j + 1].y - points[0][j].y)*(vehicle.radar_px - points[0][j].x);
-		}
-		test.push_back(a);
-	}
+	//vector<double> test;
+	double a = 0.0;
 	int up = 0, down = 0;
-	for (unsigned int i = 0; i < test.size(); i++){
-		if (test[i] >= 0)
-			up++;
-		if (test[i] <= 0)
-			down++;
+	for (int j = 0 , length= points[0].size() - 1; j < length; j++){        //计算叉积
+		a = (points[0][j + 1].x - points[0][j].x)*(vehicle.radar_py - points[0][j].y) - (points[0][j + 1].y - points[0][j].y)*(vehicle.radar_px - points[0][j].x);
+		if (a >= 0) up++;
+		if (a <= 0) down++;
 	}
-	if (up == test.size() || down == test.size())
+
+	if (up == points[0].size()-1 || down == points[0].size()-1)
 		vehicle.veh_In_Zone = true;
 	return;
 }
@@ -89,11 +81,11 @@ Vehicle_Extent Location_In_Zone::update_Veh() {
 }
 
 void Location_In_Lane::detect_Location() {
-	for (unsigned int i = 0; i < points.size(); i++){
+	for (int i = 0; i < points.size(); i++){
 		vector<double> test(0, 0);
 		double a;
 		int in = 0;
-		for (unsigned int j = 0; j < points[i].size(); j++){               //计算叉积
+		for (int j = 0, length = points[i].size() - 1; j < length; j++){               //计算叉积
 			if (j == (points[i].size()) - 1)
 				a = (points[i][0].x - points[i][j].x)*(vehicle.radar_py - points[i][j].y) - (points[i][0].y - points[i][j].y)*(vehicle.radar_px - points[i][j].x);
 			else
@@ -156,7 +148,7 @@ void Index_Caculation::get_Lanes_Info(map<string, vector<vector<Point>>> detect_
 */
 
 void Volume_Caculation::get_Vehicles_Info(Vehicle_Extent &veh) {   
-	if (veh.drive_Out_Zone == true && veh.label == 5) {
+	if (veh.drive_Out_Zone && veh.label == 5) {
 		vehs_Set[veh.lane_Num].emplace_back(veh);
 	}
 	return;
@@ -164,7 +156,7 @@ void Volume_Caculation::get_Vehicles_Info(Vehicle_Extent &veh) {
 
 void Volume_Caculation::caculation_Index(){                      //计算车道流量和断面流量
 	for (auto it=vehs_Set.begin(); it != vehs_Set.end(); it++) {
-		for (int i = 0; i < (*it).second.size(); i++) {
+		for (int i = 0, length = (*it).second.size(); i < length; i++) {
 			lanes_Volume[(*it).first] = lanes_Volume[(*it).first] + car_Type[(*it).second[i].cartype];
 		}
 		if (section_Flag == true)
@@ -175,13 +167,12 @@ void Volume_Caculation::caculation_Index(){                      //计算车道�
 
 void Volume_Caculation::update_Vehicles_Info() {
 	vehs_Set.clear();
-	section_Volume = 0;
+	section_Volume = 0.0;
 	lanes_Volume.clear();
 }
 
 void Time_Headway_Caculation::get_Vehicles_Info(Vehicle_Extent &veh) {          
-	if (veh.drive_Out_Zone == true && veh.label == 5) {
-		map<int, vector<Vehicle_Extent>>::iterator it = vehs_Set.find(veh.lane_Num);
+	if (veh.drive_Out_Zone && veh.label == 5) {
 		vehs_Set[veh.lane_Num].emplace_back(veh);
 	}
 	return;
@@ -191,7 +182,7 @@ void Time_Headway_Caculation::caculation_Index() {        //计算平均车头�
 	double ave_TT_Sum = 0.0, sat_TT_Sum = 0.0, ave_Volume = 0.0, sat_Volume = 0.0;
 	double TT_temp = 0.0;
 	for (auto it = vehs_Set.begin(); it != vehs_Set.end(); it++) {
-		for (int i = 1; i < (*it).second.size(); i++) {
+		for (int i = 1, length = (*it).second.size(); i < length; i++) {
 			TT_temp = ((*it).second[i].time_Drive_Out - (*it).second[i - 1].time_Drive_Out) * car_Type[(*it).second[i].cartype];  //加入车型换算系数
 			if (((*it).second[i].time_Drive_Out - (*it).second[i - 1].time_Drive_Out) <= sat_Max_Headway) {
 				sat_TT_Sum = sat_TT_Sum + TT_temp;
@@ -236,14 +227,8 @@ void Capacity_Caculation::caculation_Index(){
 }
 
 void Space_Speed_Caculation::get_Vehicles_Info(Vehicle_Extent &veh) {
-	if (veh.drive_In_Zone == true && veh.label == 5) {
-		map<int, Vehicle_Extent>::iterator it = vehs_Set.find(veh.id);
-		if (it == vehs_Set.end()) {                                   //只保留车辆驶入时的状态（时间和位置）
-			vehs_Set.emplace(veh.id, veh);
-			vehs_ID_Set.emplace_front(veh.id);
-		}
-		else if (veh.drive_Out_Zone == true)                          //更新车辆驶出时的状态（时间和位置）
-			vehs_Set[veh.id] = veh;
+	if (veh.drive_In_Zone && veh.drive_Out_Zone && veh.label == 5) {                         //modified
+		vehs_Set.emplace(veh.id, veh);
 	}
 	return;
 }
@@ -252,16 +237,14 @@ void Space_Speed_Caculation::caculation_Index() {
 	double distance=0.0,ave_Speed_Sum = 0.0, ave_Delay_Sum = 0.0;
 	int volume = 0;
 	double time = 0.0;
-	for (int i = 0; i < vehs_ID_Set.size(); i++) {
-		if (vehs_Set[vehs_ID_Set[i]].drive_Out_Zone && vehs_Set[vehs_ID_Set[i]].drive_In_Zone) {
-			distance = sqrt(pow(vehs_Set[vehs_ID_Set[i]].pos_Drive_Out.x - vehs_Set[vehs_ID_Set[i]].pos_Drive_In.x, 2.0) +
-				pow(vehs_Set[vehs_ID_Set[i]].pos_Drive_Out.y - vehs_Set[vehs_ID_Set[i]].pos_Drive_In.y, 2.0));               //计算区间距离
-			time = vehs_Set[vehs_ID_Set[i]].time_Drive_Out - vehs_Set[vehs_ID_Set[i]].time_Drive_In;            //计算区间时间
-			if (time > 0) {
-				ave_Speed_Sum = ave_Speed_Sum + distance / time;
-				ave_Delay_Sum = ave_Delay_Sum + time - distance / speed_Max;
-				volume++;
-			}
+	for (auto it = vehs_Set.begin(); it != vehs_Set.end(); it++) {                                     //modified
+		distance = sqrt(pow((*it).second.pos_Drive_Out.x - (*it).second.pos_Drive_In.x, 2.0) +
+				pow((*it).second.pos_Drive_Out.y - (*it).second.pos_Drive_In.y, 2.0));               //计算区间距离
+		time = (*it).second.time_Drive_Out - (*it).second.time_Drive_In;            //计算区间时间
+		if (time > 0) {
+			ave_Speed_Sum = ave_Speed_Sum + distance / time;
+			ave_Delay_Sum = ave_Delay_Sum + time - distance / speed_Max;
+			volume++;
 		}
 	}
 	if (volume > 0) {
@@ -272,38 +255,23 @@ void Space_Speed_Caculation::caculation_Index() {
 }
 
 void Space_Speed_Caculation::update_Vehicles_Info() {
-	int n = vehs_ID_Set.size()-1;
-	while ((n >= 0) && (current_Time - vehs_Set[vehs_ID_Set[n]].drive_In_Zone) >= window_Interval) {
-		vehs_Set.erase(vehs_ID_Set[n]);
-		vehs_ID_Set.pop_back();
-		n--;
-	}
-	for (auto it = vehs_ID_Set.begin(); it != vehs_ID_Set.end();) {
-		if (vehs_Set[*it].drive_Out_Zone && vehs_Set[*it].drive_In_Zone) {
-			vehs_Set.erase(*it);
-			it = vehs_ID_Set.erase(it);
-		}
-		else {
-			it++;
-		}
-	}
+	vehs_Set.clear();
 	return;
 }
 
 void Headway_Density_Caculation::get_Vehicles_Info(Vehicle_Extent &veh) {
-	if (veh.veh_In_Zone == true && veh.label == 5) {
+	if (veh.label == 5) {
 		auto it = vehs_Set.find(veh.lane_Num);
-		if (it == vehs_Set.end()) {
+		if (it == vehs_Set.end()) {                                        //modified
 			vehs_Set[veh.lane_Num].emplace_back(veh);
+			return;
 		}
-		else {
-			//插入排序，按距离停止线从近到远，依次插入vector
-			int j = vehs_Set[veh.lane_Num].size() - 1;
-			while (j >= 0 && (fabs(veh.radar_px) + fabs(veh.radar_py) < fabs(vehs_Set[veh.lane_Num][j].radar_px) + fabs(vehs_Set[veh.lane_Num][j].radar_py))) {
-				j--;
-			}
-			vehs_Set[veh.lane_Num].insert(vehs_Set[veh.lane_Num].begin() + 1 + j, veh);
+		//插入排序，按距离停止线从近到远，依次插入vector
+		int j = vehs_Set[veh.lane_Num].size() - 1;
+		while (j >= 0 && (fabs(veh.radar_px) + fabs(veh.radar_py) < fabs(vehs_Set[veh.lane_Num][j].radar_px) + fabs(vehs_Set[veh.lane_Num][j].radar_py))) {
+			j--;
 		}
+		vehs_Set[veh.lane_Num].insert(vehs_Set[veh.lane_Num].begin() + 1 + j, veh);
 	}
 	return;
 }
@@ -332,7 +300,7 @@ void Headway_Density_Caculation::caculation_Index() {
 		zone_volume = zone_volume + m;                                                //计算区域总流量
 		headway = 0.0; volume = 0.0; speed_Sum = 0.0;
 	}
-	if (section_Flag == true) {
+	if (section_Flag) {
 		double volume_Headway_Sum = 0.0;
 		int volume_Speed_Sum = 0;
 		ave_Space_Headway = 0.0;
@@ -371,7 +339,7 @@ void Max_Queue_Caculation::create_Queue() {
 		vector<Vehicle_Extent> temp;
 		double density_before = 0.0, volume = 0.0, dist = 0.0;
 		bool veh_Status_Now = true, veh_Status_Before = true;
-		for (int i = 0; i < vehs.size(); i++) {
+		for (int i = 0, length = vehs.size(); i < length; i++) {
 			if (temp.size() == 0) {
 				temp.emplace_back(vehs[i]);
 				volume += car_Type[vehs[i].cartype];
@@ -379,14 +347,14 @@ void Max_Queue_Caculation::create_Queue() {
 			}
 			else {
 				veh_Status_Now = (vehs[i].speed <= speed_Queue) ? true : false;
-				while (veh_Status_Now == veh_Status_Before && veh_Status_Now && i < vehs.size()) {                   //以速度值划分车队，并且前后两车状态相同
-					if (temp.size() < min_Queue_Size-1) 
-						temp.emplace_back(vehs[i]);
+				while (veh_Status_Now == veh_Status_Before && veh_Status_Now && i < length) {                   //以速度值划分车队，并且前后两车状态相同
+					//if (temp.size() < min_Queue_Size-1)                                                 //modified
+						//temp.emplace_back(vehs[i]);
 					volume += car_Type[vehs[i].cartype];
 					if (temp.size() >= min_Queue_Size - 1) {
 						double x = temp[0].radar_px;
 						double y = temp[0].radar_py;
-						dist = sqrt(pow(vehs[i].radar_px, 2.0) + pow(vehs[i].radar_py, 2.0)) - sqrt(pow(x, 2.0) + pow(y, 2.0));
+						dist = sqrt(pow(vehs[i].radar_px - x, 2.0) + pow(vehs[i].radar_py - y , 2.0));       //modified
 						double k = 1000 * (volume-1) / dist; 
 						if (k > 1000.0 / max_Headway_Slow)                                           //车队的密度大于最小密度要求
 							temp.emplace_back(vehs[i]);
@@ -396,10 +364,10 @@ void Max_Queue_Caculation::create_Queue() {
 					}
 					veh_Status_Before = veh_Status_Now;
 					i++;
-					if (i < vehs.size()) veh_Status_Now = (vehs[i].speed <= speed_Queue) ? true : false;
+					if (i < length) veh_Status_Now = (vehs[i].speed <= speed_Queue) ? true : false;
 				}
 				if (temp.size() >= min_Queue_Size) {
-					queues_Set[lane_Num].push(temp);                                                    //车队集合
+					queues_Set[lane_Num].emplace(temp);                                                    //车队集合
 					queues_Density[lane_Num].emplace_back(density_before);                              //车队对应的密度                          
 				}
 				temp.clear();
@@ -411,7 +379,7 @@ void Max_Queue_Caculation::create_Queue() {
 	return;
 }
 
-void Max_Queue_Caculation::caculation_Index() {
+void Max_Queue_Caculation::caculation_Index() {                              //modified
 	create_Queue();
 	vector<Vehicle_Extent> temp;
 	for (auto it = queues_Set.begin(); it != queues_Set.end(); it++) {
@@ -419,12 +387,12 @@ void Max_Queue_Caculation::caculation_Index() {
 		if ((*it).second.size() == 1) {
 			queue_Continue[(*it).first] = true;
 			lanes_Queue_Length[(*it).first] = sqrt(pow(temp[temp.size() - 1].radar_px, 2.0) + pow(temp[temp.size() - 1].radar_py, 2.0)) - stop_Distance;   //需要确定停止线的位置
-			lanes_Queue_Num[(*it).first] = temp.size();
+			lanes_Queue_Num[(*it).first] = temp.size();                                                                              
 		}
 		if ((*it).second.size() > 1) {
 			queue_Continue[(*it).first] = true;
 			if (queues_Density[(*it).first][0] >= 1000 / max_Headway_Queue && queues_Density[(*it).first][1] >= 1000 / max_Headway_Slow)      //排队聚集阶段
-				caculate_Queue((*it).first, 1, speed_Queue_Start);  
+				caculate_Queue((*it).first, 1, speed_Queue_Start);
 			else if (queues_Density[(*it).first][0] >= 1000 / max_Headway_Slow && queues_Density[(*it).first][1] >= 1000 / max_Headway_Queue)  //排队消散阶段
 				caculate_Queue((*it).first, (*it).second.size(), speed_Queue_End);
 			else if (queues_Density[(*it).first][0] >= 1000 / max_Headway_Slow && queues_Density[(*it).first][1] >= 1000 / max_Headway_Slow) {                                                        //排队消失阶段    
@@ -442,6 +410,7 @@ void Max_Queue_Caculation::caculation_Index() {
 				}
 			}
 		}
+
 		if (section_Flag == true) {                                                                        //计算断面的最大排队长度和排队车辆数
 			if (lanes_Queue_Length[(*it).first] > section_Queue_Length)
 				section_Queue_Length = lanes_Queue_Length[(*it).first];
@@ -494,7 +463,7 @@ map<int, bool> Max_Queue_Caculation::update_Queue_Status() {
 }
 
 void Stops_Caculation::get_Vehicles_Info(Vehicle_Extent &veh) {
-	if (veh.veh_In_Zone && veh.label == 5) {
+	if (veh.label == 5) {
 		vehs_ID.emplace_back(veh.id);
 		if (veh.speed <= speed_Stop_Start) {              //通过停车速度阈值，选择车辆
 			if (vehs_Set.find(veh.id) == vehs_Set.end()) {
@@ -621,44 +590,48 @@ int main()
 	detect_Config_Points.emplace("entry_line", entry_Points);
 	detect_Config_Points.emplace("stop_line", stop_Points);
 	detect_Config_Points.emplace("detect_zone", detect_Zone_Points);
-
+	double entry_stop_Midpoint = (detect_Config_Points["entry_line"][0][0].y + detect_Config_Points["stop_line"][0][0].y) / 2.0;     //驶入线和停止线的y轴分割点
+	
 	bool flag = false;
 	double time_sec = 0.0;         //当前时间
-	int window_Interval = 30 * 60; //时间窗口
+	int window_Interval = 15 * 60; //时间窗口
 	double time_Interval = 5.0;       //时间间隔
 	double speed_Start = 5.0 / 3.6, speed_End = 20.0 / 3.6;     //排队形成的速度阈值，排队消散的速度阈值
-	int min_Vehs_Size = 2;                                      //车队的最小车辆数
+	int min_Vehs_Size = 3;                                      //车队的最小车辆数
 	
 	vector<vector<Vehicle_Extent>> vehs_test(2);
 	for (int i = 0; i < 150; i++) {
 		vehs_test[0].emplace_back(Vehicle_Extent(4, 1, i+1, rand() % 4 + 11, 5, "light", -1.7, 30 + rand() % 180, rand() % 10, 0, 4, 1.8));
-
 	}
 	for (int i = 0; i < 150; i++) {
 		vehs_test[1].emplace_back(Vehicle_Extent(5, 0, i + 1, vehs_test[0][i].lane_Num, 5, "light", -1.7, vehs_test[0][i].radar_py- vehs_test[0][i].speed, rand() % 10, 0, 4, 1.8));
-
 	}
 
-	map<int, Vehicle_Extent> map_Vehs_Entry, map_Vehs_Stop;   //记录entry-stop对中，车辆上一时刻的信息
+	map<int, Vehicle_Extent> map_Vehs;   //记录entry-stop对中，车辆上一时刻的信息
 	map<int, bool> map_Lanes_Queue;   //记录车道排队的状态
 
 	Volume_Caculation volume_test = Volume_Caculation(time_Interval,true, detect_Config_Points);                                                                //定义流量指标
 	Space_Speed_Caculation speed_test = Space_Speed_Caculation(time_Interval, window_Interval, 60.0 / 3.6, detect_Config_Points);                       //定义平均空间速度指标                                      //定义平均车头间距和密度指标
-	Capacity_Caculation capacity_test = Capacity_Caculation(time_Interval, 4.0, 60/3.6, detect_Config_Points);                                                    //定义通行能力指标
+	Capacity_Caculation capacity_test = Capacity_Caculation(time_Interval, 3.0, 60/3.6, detect_Config_Points);                                                    //定义通行能力指标
 
 	Max_Queue_Caculation max_queue_test = Max_Queue_Caculation(time_Interval, true, speed_Start, speed_End, min_Vehs_Size, map_Lanes_Queue, detect_Config_Points);  //定义排队长度指标
 	Stops_Caculation stops_test = Stops_Caculation(time_Interval, window_Interval, speed_Start, 3.0, detect_Config_Points);                             //定义停车次数指标
 
 	//开始测试
 	for (int i = 0; i < vehs_test.size(); i++) {
-		for (int j = 0; j < vehs_test[i].size(); j++) {
-			vehs_test[i][j] = Location_In_Zone("detect_zone", vehs_test[i][j], detect_Config_Points).update_Veh();                //区域检测
-			time_sec = vehs_test[i][j].sec;
+		for (int j = 0, length = vehs_test[i].size(); j < length; j++) {
+			
+			time_sec = vehs_test[i][j].timestamp;
 			speed_test.current_Time = vehs_test[i][j].timestamp;
-			stops_test.current_Time = vehs_test[i][j].timestamp;
+			stops_test.current_Time = vehs_test[i][j].timestamp;    
+			vehs_test[i][j] = Location_In_Zone("detect_zone", vehs_test[i][j], detect_Config_Points).update_Veh();                //区域检测
+			
+			if (vehs_test[i][j].radar_py >= entry_stop_Midpoint)
+			    vehs_test[i][j] = Location_Cross_Line("entry_line", map_Vehs, vehs_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Veh();  //驶入区域检测
+			else
+				vehs_test[i][j] = Location_Cross_Line("stop_line", map_Vehs, vehs_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Veh();   //驶出区域检测
+			
 			if (vehs_test[i][j].veh_In_Zone) {
-				vehs_test[i][j] = Location_Cross_Line("entry_line", map_Vehs_Entry, vehs_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Veh();  //驶入区域检测
-				vehs_test[i][j] = Location_Cross_Line("stop_line", map_Vehs_Stop, vehs_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Veh();   //驶出区域检测
 				volume_test.get_Vehicles_Info(vehs_test[i][j]);            //采集车辆，用于计算流量
 				speed_test.get_Vehicles_Info(vehs_test[i][j]);             //采集车辆，用于计算空间平均速度
 				capacity_test.get_Vehicles_Info(vehs_test[i][j]);          //采集车辆，用于计算平均车头时距和车道通行能力
@@ -676,17 +649,17 @@ int main()
 		max_queue_test.Headway_Density_Caculation::update_Vehicles_Info();
 		max_queue_test.update_Vehicles_Info();
 		stops_test.update_Vehicles_Info();
-
+		
 		if (fmod(time_sec, time_Interval) == 0.0 && !flag) {
 			volume_test.caculation_Index();                                               //计算流量
 			speed_test.caculation_Index();                                                //计算空间平均速度
 			capacity_test.Time_Headway_Caculation::caculation_Index();                   //计算平均车头时距
 			capacity_test.caculation_Index();                                            //计算车道通行能力
 
-			printf("volume: %f \n",volume_test.section_Volume);
+			//printf("volume: %f \n",volume_test.section_Volume);
 			volume_test.update_Vehicles_Info();
 
-			printf("space_speed: %f \n",speed_test.ave_Space_Speed);
+			//printf("space_speed: %f \n",speed_test.ave_Space_Speed);
 			speed_test.update_Vehicles_Info();
 
 			if (capacity_test.ave_Time_Headway.size() > 0) {
