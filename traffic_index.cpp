@@ -13,10 +13,7 @@ void Location_Detection::get_Boundary_Point() {                //读取配置文
 
 void Location_Cross_Line::detect_Location() {
 	map<int, Pedestrian_Extent>::iterator it = map_Peds.find(pedestrian.id);
-	if (it == map_Peds.end() && pedestrian.ped_In_Zone) {
-		map_Peds.emplace(pedestrian.id, pedestrian);
-		return;
-	}
+
 	if ((*it).second.walk_In_Zone || (*it).second.walk_Out_Zone ){
 		pedestrian.walk_In_Zone = (*it).second.walk_In_Zone; pedestrian.walk_Out_Zone = (*it).second.walk_Out_Zone;
 		pedestrian.pos_Walk_In = (*it).second.pos_Walk_In; pedestrian.pos_Walk_Out = (*it).second.pos_Walk_Out;
@@ -79,41 +76,25 @@ Pedestrian_Extent Location_In_Zone::update_Ped() {
 	return pedestrian;
 }
 
-void Index_Caculation::get_Lanes_Info(map<string, vector<vector<Point>>> detect_Config) {
-	stop_Distance = fabs((detect_Config["stop_line"][0][0].y + detect_Config["stop_line"][0][1].y) / 2);      //估计停止线到原点的距离
-	lanes_Length = lanes_Num * (fabs((detect_Config["entry_line"][0][0].y + detect_Config["entry_line"][0][1].y) / 2) - stop_Distance); //区域内所有车道的总长度
-	for (int i = 0; i < lanes_Num; i++) {
-		lane_Code.emplace_back(i + 11);
-	}
-	return;
-}
-
 void Volume_Caculation::get_Pedestrians_Info(Pedestrian_Extent &ped) {   
-	if (ped.time_Walk_In && ped.time_Walk_Out && ped.label == 5) {
-		peds_Set[ped.lane_Num].emplace_back(ped);
+	if (ped.label == 3 && ((!ped.walk_In_Zone && ped.walk_Out_Zone) || (ped.walk_In_Zone && !ped.walk_Out_Zone))) {
+		peds_Set.emplace_back(ped);
 	}
 	return;
 }
 
 void Volume_Caculation::caculation_Index(){                      //计算车道流量和断面流量
-	for (auto it=peds_Set.begin(); it != peds_Set.end(); it++) {
-		for (int i = 0, length = (*it).second.size(); i < length; i++) {
-			lanes_Volume[(*it).first] = lanes_Volume[(*it).first] + car_Type[(*it).second[i].cartype];
-		}
-		if (section_Flag == true)
-			section_Volume = section_Volume + lanes_Volume[(*it).first];       //断面流量累加
-	}
+	peds_Volume = peds_Set.size();
 	return;
 }
 
 void Volume_Caculation::update_Pedestrians_Info() {
 	peds_Set.clear();
-	section_Volume = 0.0;
-	lanes_Volume.clear();
+	return;
 }
 
 void Space_Speed_Caculation::get_Pedestrians_Info(Pedestrian_Extent &ped) {
-	if (ped.walk_In_Zone && ped.walk_Out_Zone && ped.label == 5) {                         //modified
+	if (ped.label == 3 && ped.walk_In_Zone && ped.walk_Out_Zone) {                         //modified
 		peds_Set.emplace(ped.id, ped);
 	}
 	return;
@@ -154,8 +135,7 @@ void ReadJsonFromFile(string filename, map<string, vector<vector<Point>>>& detec
 		return ;
 	}
 
-	vector<string> data_Fields{"entry_line","stop_line","detect_zone","no_parking","intersection_entry_line","intersection_stop_line",
-	"noparking_entry_line","noparking_stop_line","intersection_zone"};
+	vector<string> data_Fields{"entry_line","stop_line","detect_zone"};
 	Json::Value root;
 	Json::Reader reader;
 	if (reader.parse(ifs, root)) {
@@ -188,7 +168,7 @@ int main()
 	//检测框类型划分为detect_zone,no_parking_zone,lane_canalization,lane_normal,entry_line,stop_line,no_change_line，对应着
     //                区域、禁停区、渠化车道、上游正常车道、驶入线、停止线、禁止换道起点线
 	map<string, vector<vector<Point>>> detect_Config_Points;       //配置文件
-	//ReadJsonFromFile("F:\\202011MEC交通开发\\code\\detect_Config.json", detect_Config_Points);
+	//ReadJsonFromFile("F:\\202011MEC交通开发\\code\\traffic_index\\detect_Config.json", detect_Config_Points);
 
 	vector<vector<Point>> entry_Points = { { Point(0,200),Point(-14,200) } };
 	vector<vector<Point>> stop_Points = { { Point(0,40),Point(-14,40) } };
@@ -197,28 +177,24 @@ int main()
 	detect_Config_Points.emplace("entry_line", entry_Points);
 	detect_Config_Points.emplace("stop_line", stop_Points);
 	detect_Config_Points.emplace("detect_zone", detect_Zone_Points);
-	double entry_stop_Midpoint = (detect_Config_Points["entry_line"][0][0].y + detect_Config_Points["stop_line"][0][0].y) / 2.0;     //驶入线和停止线的y轴分割点
 	
 	bool flag = false;
 	double time_sec = 0.0;         //当前时间
 	int window_Interval = 15 * 60; //时间窗口
 	double time_Interval = 5.0;       //时间间隔
-	double speed_Start = 5.0 / 3.6, speed_End = 20.0 / 3.6;     //排队形成的速度阈值，排队消散的速度阈值
-	int min_Vehs_Size = 3;                                      //车队的最小车辆数
 	
-	vector<vector<Pedestrian_Extent>> peds_test(2);
-	for (int i = 0; i < 150; i++) {
-		peds_test[0].emplace_back(Pedestrian_Extent(4, 1, i+1, rand() % 4 + 11, 5, "light", -1.7, 30 + rand() % 180, rand() % 10, 0, 4, 1.8));
-	}
-	for (int i = 0; i < 150; i++) {
-		peds_test[1].emplace_back(Pedestrian_Extent(5, 0, i + 1, peds_test[0][i].lane_Num, 5, "light", -1.7, peds_test[0][i].radar_py- peds_test[0][i].speed, rand() % 10, 0, 4, 1.8));
-	}
-
+	vector<vector<Pedestrian_Extent>> peds_test = {
+		{Pedestrian_Extent(3, 0, 1, rand() % 4 + 11, 3, "light", -1.7, 205 , rand() % 10, 0, 4, 1.8),
+		 Pedestrian_Extent(3, 0, 2, rand() % 4 + 11, 3, "light", -1.7, 35 , rand() % 10, 0, 4, 1.8)},
+		{Pedestrian_Extent(4, 0, 1, rand() % 4 + 11, 3, "light", -1.7, 195 , rand() % 10, 0, 4, 1.8),
+		 Pedestrian_Extent(4, 0, 2, rand() % 4 + 11, 3, "light", -1.7, 45 , rand() % 10, 0, 4, 1.8)},
+		{Pedestrian_Extent(5, 0, 1, rand() % 4 + 11, 3, "light", -1.7, 35 , rand() % 10, 0, 4, 1.8),
+		 Pedestrian_Extent(5, 0, 2, rand() % 4 + 11, 3, "light", -1.7, 205 , rand() % 10, 0, 4, 1.8)}
+	};
 	map<int, Pedestrian_Extent> map_Peds;   //记录entry-stop对中，车辆上一时刻的信息
-	map<int, bool> map_Lanes_Queue;   //记录车道排队的状态
 
-	Volume_Caculation volume_test = Volume_Caculation(time_Interval,true, detect_Config_Points);                                                                //定义流量指标
-	Space_Speed_Caculation speed_test = Space_Speed_Caculation(time_Interval, window_Interval, 60.0 / 3.6, detect_Config_Points);                       //定义平均空间速度指标 
+	Volume_Caculation volume_test = Volume_Caculation(time_Interval, detect_Config_Points);                                                                //定义流量指标
+	Space_Speed_Caculation speed_test = Space_Speed_Caculation(time_Interval, window_Interval, 5.0 / 3.6, detect_Config_Points);                       //定义平均空间速度指标 
 
 	//开始测试
 	for (int i = 0; i < peds_test.size(); i++) {
@@ -228,15 +204,23 @@ int main()
 			speed_test.current_Time = peds_test[i][j].timestamp;
 			peds_test[i][j] = Location_In_Zone("detect_zone", peds_test[i][j], detect_Config_Points).update_Ped();                //区域检测
 			
-			if (peds_test[i][j].radar_py >= entry_stop_Midpoint)
-			    peds_test[i][j] = Location_Cross_Line("entry_line", map_Peds, peds_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Ped();  //驶入区域检测
-			else
-				peds_test[i][j] = Location_Cross_Line("stop_line", map_Peds, peds_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Ped();   //驶出区域检测
+			if (map_Peds.find(peds_test[i][j].id) == map_Peds.end()) {
+				map_Peds.emplace(peds_test[i][j].id, peds_test[i][j]);
+				continue;
+			}
+			double px = map_Peds[peds_test[i][j].id].radar_px,
+				py = map_Peds[peds_test[i][j].id].radar_py;
+			if (!peds_test[i][j].walk_In_Zone)                                                                                     //驶入区域检测
+			   peds_test[i][j] = Location_Cross_Line("entry_line", map_Peds, peds_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Ped();  
 			
+			if (!peds_test[i][j].walk_Out_Zone) {                                                                                    //驶出区域检测
+				map_Peds[peds_test[i][j].id].radar_px = px; map_Peds[peds_test[i][j].id].radar_py = py;                              //回溯坐标
+				peds_test[i][j] = Location_Cross_Line("stop_line", map_Peds, peds_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Ped();  
+			}
+		    
 			if (peds_test[i][j].ped_In_Zone) {
 				volume_test.get_Pedestrians_Info(peds_test[i][j]);            //采集车辆，用于计算流量
 				speed_test.get_Pedestrians_Info(peds_test[i][j]);             //采集车辆，用于计算空间平均速度
-				
 			}
 		}
 		
@@ -244,10 +228,10 @@ int main()
 			volume_test.caculation_Index();                                               //计算流量
 			speed_test.caculation_Index();                                                //计算空间平均速度
 			
-			//printf("volume: %f \n",volume_test.section_Volume);
+			printf("volume: %d \n",volume_test.peds_Volume);
 			volume_test.update_Pedestrians_Info();
 
-			//printf("space_speed: %f \n",speed_test.ave_Space_Speed);
+			printf("space_speed: %f \n",speed_test.ave_Space_Speed);
 			speed_test.update_Pedestrians_Info();
 
 			flag = true;

@@ -12,10 +12,6 @@
 #include "json/json.h"
 
 using namespace std;
-map<string, double> car_Type = { {"",1.0}, {"light",1.0},{"middle",1.5},{"oversize",2.5} };   //不同类型车辆的换算系数
-static const double time_Reaction = 1.5, dist_Safe = 1.5, surface_Ratio = 0.8;       //刹车的反应时间，两车安全距离，沥青路面附着系数
-map<string, double> speed_Deceleration_Value = { {"light",6.05},{"middle",5.6},{"oversize",4.75} };  //不同类型车辆的刹车加速度值
-static const int lanes_Num = 4;                 //车道数
 
 struct Point {                 //检测区域的二维坐标点
 	Point() { x = 0.0; y = 0.0; }
@@ -121,10 +117,7 @@ private:
 class Index_Caculation {        //***交通指标计算
 public:
 	Index_Caculation() {};
-	Index_Caculation(double mtime_Interval, map<string, vector<vector<Point>>> mdetect_Config) :time_Interval(mtime_Interval) {
-		get_Lanes_Info(mdetect_Config);
-	};
-	void get_Lanes_Info(map<string, vector<vector<Point>>> detect_Config);
+	Index_Caculation(double mtime_Interval, map<string, vector<vector<Point>>> mdetect_Config) :time_Interval(mtime_Interval) {};
 	virtual void get_Pedestrians_Info(Pedestrian_Extent &ped) = 0;          //获取目标行人的集合
 	virtual void caculation_Index() = 0;             //指标计算
 	virtual void update_Pedestrians_Info() = 0;       //更新目标行人的集合
@@ -141,17 +134,14 @@ public:
 class Volume_Caculation :public Index_Caculation {       //**统计流量
 public:
 	Volume_Caculation() {};
-	Volume_Caculation(double mtime_Interval,bool msection_Flag, map<string, vector<vector<Point>>> mdetect_Config) :section_Flag(msection_Flag), Index_Caculation(mtime_Interval, mdetect_Config) {};
+	Volume_Caculation(double mtime_Interval, map<string, vector<vector<Point>>> mdetect_Config) :Index_Caculation(mtime_Interval, mdetect_Config) {};
 	void get_Pedestrians_Info(Pedestrian_Extent &ped);
 	void caculation_Index();
 	void update_Pedestrians_Info();
 
-private:
-	bool section_Flag;
 public:
-	map<int, vector<Pedestrian_Extent>> peds_Set;
-	double section_Volume=0.0;
-	map<int, double> lanes_Volume;
+	vector<Pedestrian_Extent> peds_Set;
+	int peds_Volume;
 };
 
 class Space_Speed_Caculation :public Index_Caculation {       //**计算区间平均速度、区间延误
@@ -166,8 +156,8 @@ public:
 private:
 	map<int, Pedestrian_Extent> peds_Set;
 	double ave_Travel_Time = 0.0;
-	double window_Interval=30;                                      //时间窗口的最大值，分钟
-	double speed_Max;                                         //路段的限速值      
+	double window_Interval=15.0;                                      //时间窗口的最大值，分钟
+	double speed_Max;                                         //行人的正常行走速度      
 
 public:
 	double current_Time = 0.0;                                         //当前时间
