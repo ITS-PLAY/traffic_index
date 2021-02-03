@@ -626,11 +626,15 @@ int main()
 			stops_test.current_Time = vehs_test[i][j].timestamp;    
 			vehs_test[i][j] = Location_In_Zone("detect_zone", vehs_test[i][j], detect_Config_Points).update_Veh();                //区域检测
 			
-			if (vehs_test[i][j].radar_py >= entry_stop_Midpoint)
-			    vehs_test[i][j] = Location_Cross_Line("entry_line", map_Vehs, vehs_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Veh();  //驶入区域检测
-			else
-				vehs_test[i][j] = Location_Cross_Line("stop_line", map_Vehs, vehs_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Veh();   //驶出区域检测
-			
+			if (vehs_test[i][j].radar_py >= entry_stop_Midpoint) {
+				if (!vehs_test[i][j].drive_In_Zone)
+					vehs_test[i][j] = Location_Cross_Line("entry_line", map_Vehs, vehs_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Veh();  //驶入区域检测
+			}
+			else {
+				if (!vehs_test[i][j].drive_Out_Zone)
+					vehs_test[i][j] = Location_Cross_Line("stop_line", map_Vehs, vehs_test[i][j], detect_Config_Points, time_sec, window_Interval).update_Veh();   //驶出区域检测
+			}
+
 			if (vehs_test[i][j].veh_In_Zone) {
 				volume_test.get_Vehicles_Info(vehs_test[i][j]);            //采集车辆，用于计算流量
 				speed_test.get_Vehicles_Info(vehs_test[i][j]);             //采集车辆，用于计算空间平均速度
