@@ -118,12 +118,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\event_detect_in_class.cpp" />
+    <ClCompile Include="..\event_detect_in_class_node.cpp" />
     <ClCompile Include="..\json_reader.cpp" />
     <ClCompile Include="..\json_value.cpp" />
     <ClCompile Include="..\json_writer.cpp" />
-    <ClCompile Include="..\traffic_index.cpp" />
+    <ClCompile Include="..\traffic_incident.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\event_detect_in_class.h" />
     <ClInclude Include="..\json\assertions.h" />
     <ClInclude Include="..\json\autolink.h" />
     <ClInclude Include="..\json\config.h" />
@@ -135,7 +138,7 @@
     <ClInclude Include="..\json\version.h" />
     <ClInclude Include="..\json\writer.h" />
     <ClInclude Include="..\json_tool.h" />
-    <ClInclude Include="..\traffic_index.h" />
+    <ClInclude Include="..\traffic_incident.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
