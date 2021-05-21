@@ -1,13 +1,15 @@
 {"detect_config":
-    {"detect_zone":[{"x":-1,"y":30},{"x":-17.5,"y":30},{"x":-17.5,"y":210},{"x":-1,"y":210}],
-     "entry_line":[{"x":0,"y":200},{"x":-17.5,"y":200}],
-     "stop_line":[{"x":0,"y":40},{"x":-17.5,"y":40}],
-     "no_parking":[{"x":-14,"y":70},{"x":-17.5,"y":70},{"x":-17.5,"y":100},{"x":-14,"y":100}],
-     "noparking_entry_line":[{"x":0,"y":100},{"x":-17.5,"y":100}],
-     "noparking_stop_line":[{"x":0,"y":70},{"x":-17.5,"y":70}],
-     "intersection_zone":[{"x":0,"y":0},{"x":-17.5,"y":0},{"x":-17.5,"y":30},{"x":0,"y":30}],
-     "intersection_entry_line":[{"x":0,"y":28},{"x":-17.5,"y":28}],
-     "intersection_stop_line":[{"x":0,"y":2},{"x":-17.5,"y":2}]
+    {"detect_zone":[{"x":8,"y":1},{"x":-12,"y":1},{"x":-12,"y":210},{"x":8,"y":210}],
+     "entry_line":[{"x":8,"y":110},{"x":-12,"y":110}],
+     "stop_line":[{"x":8,"y":73},{"x":-12,"y":73}],
+
+     "no_parking":[{"x":8,"y":73},{"x":-12,"y":73},{"x":-12,"y":200},{"x":8,"y":200}],
+     "noparking_entry_line":[{"x":7,"y":200},{"x":-12,"y":200}],
+     "noparking_stop_line":[{"x":8,"y":73},{"x":-12,"y":73}],
+     
+     "intersection_zone":[{"x":15,"y":0},{"x":-30,"y":0},{"x":-30,"y":72},{"x":15,"y":72}],
+     "intersection_entry_line":[{"x":15,"y":72},{"x":-30,"y":72}],
+     "intersection_stop_line":[{"x":15,"y":2},{"x":-30,"y":2}]
      },
- "lanes_num":4
+ "lanes_num":2
 }

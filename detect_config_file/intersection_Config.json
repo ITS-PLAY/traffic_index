@@ -1,1 +1,25 @@
-{"devices_num":4}
+{
+    "devices_num":4,
+    "MaxSpeedUpper":55.5556,
+    "MaxLimitedSpeed":16.6667,
+    "MinLimitedSpeed":1.3889,
+    "ParkingSpeed":0.5556,
+    "NegativeSpeed":1.3889,
+    "MaxLimitedVehicleNum_Link":8,
+    "MaxLimitedVehicleNum_Lane":3,
+    "MaxLimitedPresenceTime":50,
+    "MaxLimitedAccidentTime":30,
+    "MaxLimitedTime":50000,
+    "CongestionSpeed_Slight":5.5555,
+    "CongestionSpeed_Moderate":2.7777,
+    "CongestionSpeed_Severe":1.3888,
+
+    "window_Interval":1800,
+    "time_Interval":20.0,
+    "sat_Max_Headway":4.0,
+    "speed_Start":1.3889, 
+    "speed_End":5.5556,
+    "min_Queue_Size":2,
+    "min_Stop_Duration":3.0,
+    "pz":-1
+}

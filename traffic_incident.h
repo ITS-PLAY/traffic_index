@@ -25,6 +25,7 @@ static const map<string, double> car_Type = { {"",1.0}, {"light",1.0},{"middle",
 static const double time_Reaction = 1.5, dist_Safe = 1.5, surface_Ratio = 0.8;                                    //刹车的反应时间，两车安全距离，沥青路面附着系数
 static const map<string, double> speed_Deceleration_Value = { {"light",6.05},{"middle",5.6},{"oversize",4.75} };  //不同类型车辆的刹车加速度值                                               
 
+/*
 static const int window_Interval = 30 * 60;                                            //时间窗口
 static const double time_Interval = 20.0;                                               //时间间隔
 static const double sat_Max_Headway = 4.0;                                             //饱和车头时距的阈值
@@ -46,6 +47,7 @@ static const double Congestiondensity = 0.001;					//默认0.005
 static const double CongestionSpeed_Slight = 20 / 3.6;			//s默认35
 static const double CongestionSpeed_Moderate = 10 / 3.6;        //默认30
 static const double CongestionSpeed_Severe = 5 / 3.6;			//默认20
+*/
 
 struct Point {                 //检测区域的二维坐标点
 	Point() { x = 0.0; y = 0.0; }
@@ -93,23 +95,6 @@ public:
 		drive_In_Intersection = false;
 		drive_Out_Intersection = false;
 
-		// veh_In_Zone_come = false;
-		// drive_In_Zone_come = false;
-		// drive_Out_Zone_come = false;
-
-		// veh_In_Zone_leave = false;
-		// drive_In_Zone_leave = false;
-		// drive_Out_Zone_leave = false;
-
-
-		// veh_In_Intersection_come = false;
-		// drive_In_Intersection_come = false;
-		// drive_Out_Intersection_come = false;
-
-		// veh_In_Intersection_leave = false;
-		// drive_In_Intersection_leave = false;
-		// drive_Out_Intersection_leave = false;
-
 		veh_Is_Stop = false;
 
 		veh_In_NoParking = false;
@@ -127,22 +112,6 @@ public:
 	Point pos_Veh_Recognize;                //车辆在区域内被首次检测道的位置
 	Point pos_Drive_In;          			//驶入区域时的位置
 	Point pos_Drive_Out;         			//驶出区域时的位置
-
-	// bool veh_In_Zone_come;					//是否位于来向区域内
-	// bool drive_In_Zone_come;				//是否正在驶入来向区域
-	// bool drive_Out_Zone_come;				//是否正在驶出来向区域
-	// double time_Drive_In_come;				//驶入来向区域的时间
-	// double time_Drive_Out_come;				//驶出来向区域的时间
-	// Point pos_Drive_In_come;				//驶入来向区域的位置
-	// Point pos_Drive_Out_come;				//驶出来向区域的位置
-
-	// bool veh_In_Zone_leave;					//是否位于去向区域内
-	// bool drive_In_Zone_leave;				//是否正在驶入去向区域
-	// bool drive_Out_Zone_leave;				//是否正在驶出去向区域
-	// double time_Drive_In_leave;				//驶入去向区域的时间
-	// double time_Drive_Out_leave;			//驶出去向区域的时间
-	// Point pos_Drive_In_leave;				//驶入去向区域的位置
-	// Point pos_Drive_Out_leave;				//驶出去向区域的位置
 
 	bool veh_Is_Stop;            			//是否处于（不完全）停车状态
 
@@ -163,22 +132,6 @@ public:
 	Point pos_Drive_In_Intersection;		//驶入交叉口位置
 	Point pos_Drive_Out_Intersection;		//驶出交叉口位置
 
-	// bool veh_In_Intersection_come;	 			//是否在交叉口区域
-	// bool drive_In_Intersection_come;			//是否正在驶入交叉口区域
-	// bool drive_Out_Intersection_come;			//是否正在驶出区域
-	// double time_Drive_In_Intersection_come;		//驶入交叉口时间
-	// double time_Drive_Out_Intersection_come;	//驶出交叉口时间
-	// Point pos_Drive_In_Intersection_come;		//驶入交叉口位置
-	// Point pos_Drive_Out_Intersection_come;		//驶出交叉口位置
-
-	// bool veh_In_Intersection_leave;	 			//是否在交叉口区域
-	// bool drive_In_Intersection_leave;			//是否正在驶入交叉口区域
-	// bool drive_Out_Intersection_leave;			//是否正在驶出区域
-	// double time_Drive_In_Intersection_leave;	//驶入交叉口时间
-	// double time_Drive_Out_Intersection_leave;	//驶出交叉口时间
-	// Point pos_Drive_In_Intersection_leave;		//驶入交叉口位置
-	// Point pos_Drive_Out_Intersection_leave;		//驶出交叉口位置
-
 };
 
 class Vehicleincident_Detection :public Vehicle_Extent {      //***车辆事件检测
@@ -186,10 +139,10 @@ public:
 	Vehicleincident_Detection() {}
 	Vehicleincident_Detection(double msec, double mnsec, int mid, int mlane_Num, uint32_t mlabel, string mtype, double mx, double my, double mvx, double mvy, double mlength, double mwidth) :
 		Vehicle_Extent(msec, mnsec, mid, mlane_Num, mlabel, mtype, mx, my, mvx, mvy, mlength, mwidth) {};
-	void Overspeed();
-	void Lowspeed();
-	void Retrograde();
-	void Illegalparking();
+	void Overspeed(double MaxLimitedSpeed, double MaxSpeedUpper);
+	void Lowspeed(double MinLimitedSpeed, double ParkingSpeed);
+	void Retrograde(double NegativeSpeed);
+	void Illegalparking(double ParkingSpeed, double MaxLimitedPresenceTime, double MaxLimitedTime);
 
 public:
 	bool overspeed = false;
@@ -204,7 +157,7 @@ public:
 class Location_Detection {      //***车辆位置检测
 public:
 	Location_Detection() {}
-	Location_Detection(string mline_type, map<string, vector<vector<Point>>> mdetect_Config) :line_type(mline_type), detect_Config_Points(mdetect_Config) {
+	Location_Detection(string mline_type, map<string, vector<vector<Point> > > mdetect_Config) :line_type(mline_type), detect_Config_Points(mdetect_Config) {
 		get_Boundary_Point();
 	};
 	virtual void detect_Location() = 0;
@@ -213,7 +166,7 @@ public:
 
 public:
 	string line_type;
-	map<string, vector<vector<Point>>> detect_Config_Points;
+	map<string, vector<vector<Point> > > detect_Config_Points;
 	vector<vector<Point>> points;
 };
 //位置检测的详细函数
@@ -343,10 +296,10 @@ private:
 	map<int, Vehicleincident_Detection> vehs_Set;
 	deque<int> vehs_ID_Set;
 	double ave_Travel_Time = 0.0;
-	double window_Interval = 30;                                //时间窗口的最大值，分钟
-	double speed_Max;                                         //路段的限速值      
 
 public:
+	double window_Interval = 30;                                //时间窗口的最大值，分钟
+	double speed_Max;                                         //路段的限速值
 	double current_Time;                                      //当前时间
 	double ave_Delay = 0.0;
 	double ave_Space_Speed = 0.0;
@@ -402,13 +355,14 @@ public:
 private:
 	map<int, queue<vector<Vehicleincident_Detection>>> queues_Set;
 	map<int, vector<double>> queues_Density;
-	double speed_Queue_Start = 5.0 / 3.6;            //排队形成的速度 m/s,默认值
-	double speed_Queue_End = 20.0 / 3.6;              //排队消散的速度 m/s,默认值
 	double max_Headway_Queue = 10.0;            //排队阶段的车队最大车头间距m,默认值
 	double max_Headway_Slow = 20.0;             //缓行阶段的车队最大车头间距m,默认值
-	int min_Queue_Size = 2;                    //车队的最小车辆数
 	bool section_Flag = true;
+
 public:
+	double speed_Queue_Start = 5.0 / 3.6;            //排队形成的速度 m/s,默认值
+	double speed_Queue_End = 20.0 / 3.6;              //排队消散的速度 m/s,默认值
+	int min_Queue_Size = 2;                    //车队的最小车辆数
 	map<int, double> lanes_Queue_Length;
 	map<int, int> lanes_Queue_Num;
 	double section_Queue_Length = 0.0;
@@ -439,14 +393,14 @@ public:
 	double ave_Stops = 0.0;
 };
 
-void read_Detect_JsonFile(string filename, tuple<map<string, vector<vector<Point>>>, int>& detect_Config);                     //读取每个雷达对应进口道的json配置
-void read_Intersection_JsonFile(string filename, tuple<int>& intersection_Config);                                            //读取每个交叉口的json配置  
-
-Vehicleincident_Detection Illegallanechange(Vehicleincident_Detection test, map<int, Vehicleincident_Detection>& II);         //违法变道识别
-bool Accident(Vehicleincident_Detection test);                                                                                //交通事件识别
+void read_Detect_JsonFile(string filename, tuple<map<string, vector<vector<Point>>>, int>& detect_Config);                     //读取每个雷达对应进口道的json配置                                             
+void read_Intersection_JsonFile(string filename, tuple<int, double, double, double, double, double, int, int, double, double, double, double, double, double, int, double, double, double, double, int, double, int>& intersection_Config); //读取每个交叉口的json配置
+// void read_Intersection_JsonFile(string filename, tuple<int>& intersection_Config);
+Vehicleincident_Detection Illegallanechange(Vehicleincident_Detection test, map<int, Vehicleincident_Detection>& illegal);         //违法变道识别
+bool Accident(Vehicleincident_Detection test, double ParkingSpeed, double MaxLimitedAccidentTime, double MaxLimitedTime);                                                                                //交通事件识别
 
 bool Gateway(vector<Vehicleincident_Detection> vehs_test, int lanes_Num);                                                     //匝道汇入预警
-int LinkCongestion(Max_Queue_Caculation max_queue_test);                             						  //路段拥堵识别
-int LaneCongestion(Max_Queue_Caculation max_queue_test, int item);                             						  //车道拥堵识别
+int LinkCongestion(Max_Queue_Caculation max_queue_test, int MaxLimitedVehicleNum_Link, double CongestionSpeed_Slight, double CongestionSpeed_Moderate, double CongestionSpeed_Severe);                             						  //路段拥堵识别
+int LaneCongestion(Max_Queue_Caculation max_queue_test, int item, int MaxLimitedVehicleNum_Lane, double CongestionSpeed_Slight, double CongestionSpeed_Moderate, double CongestionSpeed_Severe);                             						  //车道拥堵识别
 int lanenum_detector(float object_px, float object_py, float Vy, int source, int lane_id);
 #endif

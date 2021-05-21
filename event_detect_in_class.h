@@ -12,10 +12,10 @@ public:
         read_Detect_JsonFile(json_File_Name, detect_Config);
         detect_Config_Points = get<0>(detect_Config);
         lanes_Num = get<1>(detect_Config);
-        volume_test = Volume_Caculation(lanes_Num, true, detect_Config_Points);
-        speed_test = Space_Speed_Caculation(lanes_Num, window_Interval, MaxLimitedSpeed, detect_Config_Points);
-        capacity_test = Capacity_Caculation(lanes_Num, sat_Max_Headway, MaxLimitedSpeed, detect_Config_Points);
-        max_queue_test = Max_Queue_Caculation(lanes_Num, true, speed_Start, speed_End, min_Vehs_Size, map_Lanes_Queue, detect_Config_Points);
+        volume_test = Volume_Caculation(lanes_Num,true, detect_Config_Points);
+        speed_test = Space_Speed_Caculation(lanes_Num, 1800, 60.0/3.6, detect_Config_Points); 
+        capacity_test = Capacity_Caculation(lanes_Num, 4.0, 60.0/3.6, detect_Config_Points);
+        max_queue_test = Max_Queue_Caculation(lanes_Num, true, 5.0/3.6, 20/3.6, 2, map_Lanes_Queue, detect_Config_Points);  
         //stops_test = Stops_Caculation(lanes_Num, window_Interval, speed_Start, min_Stop_Duration, detect_Config_Points);
     };
 
@@ -48,17 +48,38 @@ class Event_detect
   public:
 
     void recieve_data();  
+    void update_Config_Info();
 
   public:
     Event_detect();
     ~Event_detect();
 
   public:
-    tuple<int> intersection_Config;                                                //交叉口配置
+    tuple<int, double, double, double, double, double, int, int, double, double, double, double, double, double, int, double, double, double, double, int, double, int> intersection_Config;            //交叉口配置
     map<int, Device_Detect> intersection_Devices_Detect;                          //根据雷达数，建立对应的事件变量数组
     int eventID = 0;                                                             //事件ID编号
     bool flag = false;                                                           //时间间隔内，是否已统计
     bool test_flag = false;
+
+    string config_File_Name = "";     //配置文件的目录
+
+    int devices_num = 4;                                                                               //雷达数/进口道数
+    double MaxSpeedUpper = 200 / 3.6;                                                                    //车辆最高速度                                                                                                                                        
+    double MaxLimitedSpeed = 60.0 / 3.6;                                                                 //路段限速值
+    double MinLimitedSpeed = 5.0 / 3.6;
+    double ParkingSpeed = 2.0 / 3.6;
+    double NegativeSpeed = 5.0 / 3.6;
+    int MaxLimitedVehicleNum_Link = 8;
+    int MaxLimitedVehicleNum_Lane = 3;
+    double MaxLimitedPresenceTime = 20.0;
+    double MaxLimitedAccidentTime = 20.0;
+    double MaxLimitedTime = 50000.0;
+    double CongestionSpeed_Slight = 20.0 / 3.6;
+    double CongestionSpeed_Moderate = 10.0 / 3.6;
+    double CongestionSpeed_Severe = 5.0 / 3.6;
+    int window_Interval = 30 * 60;                                                                       //车辆数据保存的最大时间窗口                                                                       
+    double time_Interval = 60.0;
+    int pz = -1;
 
 };
 #endif

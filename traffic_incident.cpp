@@ -185,6 +185,7 @@ Vehicleincident_Detection Location_In_Lane::update_Veh() {
 }
 
 void Index_Caculation::get_Lanes_Info(map<string, vector<vector<Point>>> detect_Config) {
+	lane_Code.clear();
 	stop_Distance = fabs((detect_Config["stop_line"][0][0].y + detect_Config["stop_line"][0][1].y) / 2);  //估计停止线到原点的距离
 	lanes_Length = lanes_Num * (fabs((detect_Config["entry_line"][0][0].y + detect_Config["entry_line"][0][1].y) / 2) - stop_Distance);     //区域内所有车道的总长度
 	for (int i = 0; i < lanes_Num; i++) {
@@ -625,86 +626,64 @@ void Stops_Caculation::update_Vehicles_Info() {
 	return;
 }
 
-void Vehicleincident_Detection::Overspeed()
+void Vehicleincident_Detection::Overspeed(double MaxLimitedSpeed, double MaxSpeedUpper)
 {
-	//if (lane_Num>10&&lane_Num<=20&&veh_In_Zone== true)
 	if (veh_In_Zone == true)
-		//if(radar_px<5)
 	{
 		if (speed > MaxLimitedSpeed && speed < MaxSpeedUpper)
 		{
 			overspeed = true;
 		}
 	}
-	// else if (lane_Num==255&&veh_In_Zone== true)
-	// {
-	// 	if (speed > MaxLimitedSpeed && speed < MaxSpeedUpper)
-	// 	{
-	// 		overspeed = true;
-	// 	}
-	// }
 }
-void Vehicleincident_Detection::Lowspeed()
+void Vehicleincident_Detection::Lowspeed(double MinLimitedSpeed, double ParkingSpeed)
 {
-	//if (lane_Num>10&&lane_Num<=20&&veh_In_Zone== true)
 	if (veh_In_Zone == true)
-		//if(radar_px<5)
 	{
 		if (speed < MinLimitedSpeed && speed > ParkingSpeed)
 		{
 			lowspeed = true;
 		}
 	}
-	// else if(lane_Num==255&&veh_In_Zone== true)
-	// {
-	// 	if (speed < MinLimitedSpeed && speed > ParkingSpeed)
-	// 	{
-	// 		lowspeed = true;
-	// 	}
-	// }
+
 }
-void Vehicleincident_Detection::Retrograde()
+void Vehicleincident_Detection::Retrograde(double NegativeSpeed)
 {
-	//if(radar_px<-3)
-	if (lane_Num > 11 && lane_Num <= 20 && veh_In_Zone == true)
+	if (lane_Num > 11 && lane_Num <= 20 && veh_In_Zone == true && (radar_py > 60 && radar_py < 150))
 	{
-		if (radar_vy > 3)       //默认为radar_vy > 0
+		if (speed > NegativeSpeed && radar_vy > 3)
 		{
 			retrograde = true;
 		}
 	}
-	// else if(lane_Num>31&&lane_Num<=40&&veh_In_Zone== true)
+
+	else if (lane_Num > 31 && lane_Num <= 40 && veh_In_Zone == true && (radar_py > 60 && radar_py < 150))
+	{
+		if (speed > NegativeSpeed && radar_vy < -3)
+		{
+			retrograde = true;
+		}
+	}
+	// else if(lane_Num==255&&veh_In_Zone== true)
 	// {
-	// 	if(radar_vy < -3)   
+	// 	if(radar_px<-3&&radar_vy>3&&speed>NegativeSpeed)
 	// 	{
 	// 		retrograde = true;
 	// 	}
-	// }	
-	else if (lane_Num == 255 && veh_In_Zone == true)
-	{
-		if (radar_px < -3 && radar_vy>3)
-		{
-			retrograde = true;
-		}
-		else if (radar_px > 3 && radar_vy < -3)
-		{
-			retrograde = true;
-		}
-		// else if(radar_px>=0&&radar_vy<=0)
-		// {
-		// 	retrograde = true;
-		// }
-	}
+	// 	else if(radar_px>3&&radar_vy<-3&&speed>NegativeSpeed)
+	// 	{
+	// 		retrograde = true;
+	// 	}
+	// }
 }
-void Vehicleincident_Detection::Illegalparking()
+void Vehicleincident_Detection::Illegalparking(double ParkingSpeed, double MaxLimitedPresenceTime, double MaxLimitedTime)
 {
 	if (lane_Num > 10 && lane_Num <= 20 && veh_In_NoParking == true)
 	{
 		if (speed <= ParkingSpeed && speed >= 0)
 		{
-			//默认为if ((timestamp - time_Drive_In_NoParking) > MaxLimitedPresenceTime)
+			// printf("车辆id:%d,时间戳:%f,进入禁停区时间:%f,停留时间:%f,阈值:%d\n",id,timestamp,time_Drive_In_NoParking,(timestamp - time_Drive_In_NoParking),MaxLimitedPresenceTime);
 			if ((timestamp - time_Drive_In_NoParking) > MaxLimitedPresenceTime && (timestamp - time_Drive_In_NoParking) <= MaxLimitedTime)
-				//if ((timestamp - 1605682317.731000000) > MaxLimitedPresenceTime)
 			{
 				illegalparking = true;
 			}
@@ -715,8 +694,7 @@ void Vehicleincident_Detection::Illegalparking()
 		if (speed <= ParkingSpeed && speed >= 0)
 		{
 			//默认为if ((timestamp - time_Drive_In_NoParking) > MaxLimitedPresenceTime)
-			if ((timestamp - time_Drive_In_NoParking) > MaxLimitedPresenceTime && (timestamp - time_Drive_In_NoParking) <= MaxLimitedTime)
-				//if ((timestamp - 1605682317.731000000) > MaxLimitedPresenceTime)
+			if (((timestamp - time_Drive_In_NoParking) > MaxLimitedPresenceTime) && ((timestamp - time_Drive_In_NoParking) <= MaxLimitedTime))
 			{
 				illegalparking = true;
 			}
@@ -739,8 +717,6 @@ Vehicleincident_Detection Illegallanechange(Vehicleincident_Detection test, map<
 				}
 			}
 			illegal[test.id] = test;
-			//illegal.insert(map<int, Vehicleincident_Detection>::value_type(test.id, test));
-
 		}
 	}
 	return test;
@@ -755,7 +731,7 @@ bool Gateway(vector<Vehicleincident_Detection> vehs_test, int lanes_Num)
 	{
 		for (int j = 0; j < vehs_test.size(); j++)
 		{
-			if (vehs_test[j].veh_In_Intersection == true) //==
+			if (vehs_test[j].veh_In_Intersection == true && abs(vehs_test[j].radar_vx) > 3) //==
 			{
 				//printf("符合条件1的sec: %f,nsec: %f, ID: %d, lane_No: %d, pos_x: %f, pos_y: %f\n",vehs_test[j].sec,vehs_test[j].nsec,vehs_test[j].id,vehs_test[j].lane_Num,vehs_test[j].radar_px,vehs_test[j].radar_py);
 				gatewaywarning1 = true;
@@ -774,14 +750,15 @@ bool Gateway(vector<Vehicleincident_Detection> vehs_test, int lanes_Num)
 	return gatewaywarning;
 }
 
-bool Accident(Vehicleincident_Detection test)
+bool Accident(Vehicleincident_Detection test, double ParkingSpeed, double MaxLimitedAccidentTime, double MaxLimitedTime)
 {
 	bool accident = false;
 	if ((test.lane_Num < 30 || test.lane_Num>40) && test.veh_In_Intersection == true) // ==
 	{
 		if (test.speed <= ParkingSpeed)
 		{
-			if ((test.timestamp - test.time_Drive_In_Intersection) > MaxLimitedAccidentTime && (test.timestamp - test.time_Drive_In_Intersection) <= MaxLimitedTime)
+			// printf("车辆id:%d,时间戳:%f,进入事故区时间:%f,停留时间:%f,阈值:%d\n",test.id,test.timestamp,test.time_Drive_In_Intersection,(test.timestamp -test.time_Drive_In_Intersection),MaxLimitedAccidentTime);
+			if (((test.timestamp - test.time_Drive_In_Intersection) > MaxLimitedAccidentTime) && ((test.timestamp - test.time_Drive_In_Intersection) < MaxLimitedTime))
 			{
 				accident = true;
 			}
@@ -790,7 +767,7 @@ bool Accident(Vehicleincident_Detection test)
 	return accident;
 }
 
-int LinkCongestion(Max_Queue_Caculation max_queue_test) //需要修改车辆数量阈值MaxLimitedVehicleNum_Link
+int LinkCongestion(Max_Queue_Caculation max_queue_test, int MaxLimitedVehicleNum_Link, double CongestionSpeed_Slight, double CongestionSpeed_Moderate, double CongestionSpeed_Severe) //需要修改车辆数量阈值MaxLimitedVehicleNum_Link
 {
 	int link_congestionlevel = 0;
 	//printf("检测区域流量：%d\n",max_queue_test.zone_volume);
@@ -812,7 +789,7 @@ int LinkCongestion(Max_Queue_Caculation max_queue_test) //需要修改车辆数�
 	return link_congestionlevel;
 }
 
-int LaneCongestion(Max_Queue_Caculation max_queue_test, int item) //需要修改车辆数量阈值MaxLimitedVehicleNum_Lane
+int LaneCongestion(Max_Queue_Caculation max_queue_test, int item, int MaxLimitedVehicleNum_Lane, double CongestionSpeed_Slight, double CongestionSpeed_Moderate, double CongestionSpeed_Severe) //需要修改车辆数量阈值MaxLimitedVehicleNum_Lane
 {
 	int lane_congestionlevel = 0;
 	//printf("车道编号：%d,车道流量：%d\n",item,max_queue_test.lanes_Speed_Volume_Sum[item]);
@@ -878,7 +855,10 @@ void read_Detect_JsonFile(string filename, tuple<map<string, vector<vector<Point
 	return;
 }
 
-void read_Intersection_JsonFile(string filename, tuple<int>& intersection_Config) {
+
+void read_Intersection_JsonFile(string filename, tuple<int, double, double, double, double, double, int, int, double, double, double, double, double, double, int, double, double, double, double, int, double, int>& intersection_Config)
+// void read_Intersection_JsonFile(string filename, tuple<int>& intersection_Config)
+{
 	ifstream ifs;
 	ifs.open(filename, ios::binary);
 	if (!ifs.is_open()) {
@@ -891,6 +871,92 @@ void read_Intersection_JsonFile(string filename, tuple<int>& intersection_Config
 			int devices_num = root["devices_num"].asInt();
 			get<0>(intersection_Config) = devices_num;
 		}
+		if (!root["MaxSpeedUpper"].isNull()) {
+			double MaxSpeedUpper = root["MaxSpeedUpper"].asDouble();
+			get<1>(intersection_Config) = MaxSpeedUpper;
+		}
+		if (!root["MaxLimitedSpeed"].isNull()) {
+			double MaxLimitedSpeed = root["MaxLimitedSpeed"].asDouble();
+			get<2>(intersection_Config) = MaxLimitedSpeed;
+		}
+		if (!root["MinLimitedSpeed"].isNull()) {
+			double MinLimitedSpeed = root["MinLimitedSpeed"].asDouble();
+			get<3>(intersection_Config) = MinLimitedSpeed;
+		}
+		if (!root["ParkingSpeed"].isNull()) {
+			double ParkingSpeed = root["ParkingSpeed"].asDouble();
+			get<4>(intersection_Config) = ParkingSpeed;
+		}
+		if (!root["NegativeSpeed"].isNull()) {
+			double NegativeSpeed = root["NegativeSpeed"].asDouble();
+			get<5>(intersection_Config) = NegativeSpeed;
+		}
+		if (!root["MaxLimitedVehicleNum_Link"].isNull()) {
+			int MaxLimitedVehicleNum_Link = root["MaxLimitedVehicleNum_Link"].asInt();
+			get<6>(intersection_Config) = MaxLimitedVehicleNum_Link;
+		}
+		if (!root["MaxLimitedVehicleNum_Lane"].isNull()) {
+			int MaxLimitedVehicleNum_Lane = root["MaxLimitedVehicleNum_Lane"].asInt();
+			get<7>(intersection_Config) = MaxLimitedVehicleNum_Lane;
+		}
+		if (!root["MaxLimitedPresenceTime"].isNull()) {
+			double MaxLimitedPresenceTime = root["MaxLimitedPresenceTime"].asDouble();
+			get<8>(intersection_Config) = MaxLimitedPresenceTime;
+		}
+		if (!root["MaxLimitedAccidentTime"].isNull()) {
+			double MaxLimitedAccidentTime = root["MaxLimitedAccidentTime"].asDouble();
+			get<9>(intersection_Config) = MaxLimitedAccidentTime;
+		}
+		if (!root["MaxLimitedTime"].isNull()) {
+			double MaxLimitedTime = root["MaxLimitedTime"].asDouble();
+			get<10>(intersection_Config) = MaxLimitedTime;
+		}
+		if (!root["CongestionSpeed_Slight"].isNull()) {
+			double CongestionSpeed_Slight = root["CongestionSpeed_Slight"].asDouble();
+			get<11>(intersection_Config) = CongestionSpeed_Slight;
+		}
+		if (!root["CongestionSpeed_Moderate"].isNull()) {
+			double CongestionSpeed_Moderate = root["CongestionSpeed_Moderate"].asDouble();
+			get<12>(intersection_Config) = CongestionSpeed_Moderate;
+		}
+		if (!root["CongestionSpeed_Severe"].isNull()) {
+			double CongestionSpeed_Severe = root["CongestionSpeed_Severe"].asDouble();
+			get<13>(intersection_Config) = CongestionSpeed_Severe;
+		}
+		if (!root["window_Interval"].isNull()) {
+			int window_Interval = root["window_Interval"].asDouble();
+			get<14>(intersection_Config) = window_Interval;
+		}
+		if (!root["time_Interval"].isNull()) {
+			double time_Interval = root["time_Interval"].asDouble();
+			get<15>(intersection_Config) = time_Interval;
+		}
+		if (!root["sat_Max_Headway"].isNull()) {
+			double sat_Max_Headway = root["sat_Max_Headway"].asDouble();
+			get<16>(intersection_Config) = sat_Max_Headway;
+		}
+		if (!root["speed_Start"].isNull()) {
+			double speed_Start = root["speed_Start"].asDouble();
+			get<17>(intersection_Config) = speed_Start;
+		}
+		if (!root["speed_End"].isNull()) {
+			double speed_End = root["speed_End"].asDouble();
+			get<18>(intersection_Config) = speed_End;
+		}
+		if (!root["min_Queue_Size"].isNull()) {
+			int min_Queue_Size = root["min_Queue_Size"].asInt();
+			get<19>(intersection_Config) = min_Queue_Size;
+		}
+		if (!root["min_Stop_Duration"].isNull()) {
+			double min_Stop_Duration = root["min_Stop_Duration"].asDouble();
+			get<20>(intersection_Config) = min_Stop_Duration;
+		}
+
+		if (!root["pz"].isNull()) {
+			int pz = root["pz"].asInt();
+			get<21>(intersection_Config) = pz;
+		}
+
 	}
 	ifs.close();
 	return;
